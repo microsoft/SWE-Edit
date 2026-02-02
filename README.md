@@ -4,15 +4,15 @@
 
 **Rethinking Code Editing for Efficient Software Engineering Agents**
 
-[![Paper](https://img.shields.io/badge/Paper-arXiv-b31b1b.svg)](https://arxiv.org/abs/TODO)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Paper](https://img.shields.io/badge/Paper-PDF-blue.svg)](assets/paper.pdf)
+![License: MIT](https://img.shields.io/github/license/microsoft/SWE-Edit)
 [![Python](https://img.shields.io/badge/Python-3.12+-blue)](https://www.python.org/downloads/)
 
 </div>
 
 ---
 
-This is the official GitHub repository for the paper **"SWE-Edit: Rethinking Code Editing for Efficient SWE-Agent"**.
+This is the official GitHub repository for the paper [**"SWE-Edit: Rethinking Code Editing for Efficient SWE-Agent"**](assets/paper.pdf).
 
 ## Overview
 
@@ -77,7 +77,7 @@ MODEL=gpt-4o
 ```bash
 API_TYPE="ANTHROPIC"
 ANTHROPIC_API_KEY=<your-api-key>
-MODEL=claude-3-5-sonnet-20241022
+MODEL=claude-sonnet-4-5-20250929
 ```
 
 **Azure OpenAI:**
@@ -136,7 +136,7 @@ MODEL_1=gpt-4o
 
 API_TYPE_2="ANTHROPIC"
 ANTHROPIC_API_KEY_2=<key-2>
-MODEL_2=claude-3-5-sonnet-20241022
+MODEL_2=claude-sonnet-4-5-20250929
 ```
 
 The agent will randomly select a configuration to distribute rate limits.
