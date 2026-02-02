@@ -3,7 +3,7 @@
 ## Setup
 Run the following command to install the dependencies for evaluation:
 ```bash
-uv sync --group eval
+uv sync --extra eval
 ```
 
 Before running the agent, you should build the sweedit wheel file first.

@@ -57,7 +57,7 @@ uv sync
 
 For SWE-bench evaluation:
 ```bash
-uv sync --group eval
+uv sync --extra eval
 ```
 
 ## Configuration
