@@ -143,13 +143,13 @@ The agent will randomly select a configuration to distribute rate limits.
 
 ## Quick Start
 
-Run the agent on a task:
+Run the minimal agent on a simple task to verify your setup:
 
 ```bash
-uv run -m sweedit.main "Fix the bug in src/utils.py where the function returns None instead of an empty list"
+uv run -m sweedit.main "First run pwd to check the current directory, then create a file called hello.py in that directory with a function that prints 'Hello, World!'"
 ```
 
-The agent will use the Viewer to extract relevant code and the Editor to apply modifications. Trajectories are saved to `.traj/` for analysis.
+This runs a minimal agent with basic tools (bash execution, string replacement editor, and finish) to verify your API configuration is working properly. Trajectories are saved to `.traj/` for analysis.
 
 ## SWE-bench Evaluation
 

@@ -9,7 +9,7 @@ from sweedit.tools import ExecuteBash, Finish, StrReplaceEditor
 
 
 class MinAgent(AgentBase):
-    def __init__(self, session_id: str, save_dir: str = ".traj/"):
+    def __init__(self, session_id: str | None = None, save_dir: str = ".traj/"):
         super().__init__(
             system=MINIMAL,
             tools=[ExecuteBash(), StrReplaceEditor(), Finish()],
