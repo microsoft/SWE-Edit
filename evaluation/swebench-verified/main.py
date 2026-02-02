@@ -69,7 +69,12 @@ def process_instance(client, instance, template, args, traj_mount, api_config):
 
         task_prompt = template.render(instance=instance)
         env_vars = load_api_key_and_task_metadata(
-            task_prompt, instance_id, api_config, agent_type=args.agent_type, llm_editor_model=args.llm_editor_model
+            task_prompt,
+            instance_id,
+            api_config,
+            agent_type=args.agent_type,
+            llm_editor_model=args.llm_editor_model,
+            llm_viewer_model=args.llm_viewer_model,
         )
 
         env_vars["WORKDIR"] = workspace_path
@@ -244,18 +249,50 @@ if __name__ == "__main__":
         "--agent_type",
         type=str,
         default="baseline",
-        choices=["baseline", "baseline-v2", "llm-file-editor", "llm-editor"],
-        help="Type of agent to use: 'baseline' (str-replace editor) or 'baseline-v2' (str-replace editor v2) or 'llm-file-editor' (LLM-based file editor) or 'llm-editor' (LLM-based editor)",  # noqa: E501
+        choices=["baseline", "baseline-v2", "llm-file-editor", "llm-editor", "finish-with-status"],
+        help="Type of agent to use: 'baseline' (str-replace editor) or 'baseline-v2' (str-replace editor v2) or 'llm-file-editor' (LLM-based file editor) or 'llm-editor' (LLM-based editor) or 'finish-with-status' (finish with status tool)",  # noqa: E501
     )
     parser.add_argument(
         "--llm_editor_model",
         type=str,
-        default="gpt-5-mini",
-        choices=["gpt-5", "gpt-5-mini", "qwen3-4b", "qwen3-4b-rl", "qwen3-8b", "qwen3-8b-rl"],
-        help="Model to use for LLM editor (only applicable when agent_type is 'llm-editor')",
+        default=None,
+        choices=[
+            "gpt-5",
+            "gpt-5-mini",
+            "gpt-5-nano",
+            "qwen3-4b",
+            "qwen3-4b-rl",
+            "qwen3-8b",
+            "qwen3-8b-rl",
+            "qwen3-8b-fr",
+        ],
+        help="Model to use for LLM editor (required for 'llm-file-editor' and 'llm-editor' agent types)",
+    )
+    parser.add_argument(
+        "--llm_viewer_model",
+        type=str,
+        default=None,
+        choices=[
+            "gpt-5",
+            "gpt-5-mini",
+            "gpt-5-nano",
+            "qwen3-4b",
+            "qwen3-4b-rl",
+            "qwen3-8b",
+            "qwen3-8b-rl",
+            "qwen3-8b-fr",
+        ],
+        help="Model to use for LLM viewer (required for 'llm-editor' and 'baseline-v2' agent types)",
     )
 
     args = parser.parse_args()
+
+    # Validate that required model parameters are provided for each agent type
+    if args.agent_type in ["llm-file-editor", "llm-editor"] and not args.llm_editor_model:
+        parser.error(f"--llm_editor_model is required when agent_type is '{args.agent_type}'")
+
+    if args.agent_type in ["llm-editor", "baseline-v2"] and not args.llm_viewer_model:
+        parser.error(f"--llm_viewer_model is required when agent_type is '{args.agent_type}'")
 
     # Automatically construct save_dir and output_file from run_name
     args.save_dir = f"/tmp/.traj/{args.run_name}"
@@ -274,7 +311,7 @@ if __name__ == "__main__":
     args.agent_script_path = os.path.abspath(args.agent_script_path)
 
     # set docker client
-    client = docker.from_env()
+    client = docker.from_env(timeout=600)
 
     # load instance IDs if specified
     instance_ids = None
@@ -324,8 +361,10 @@ if __name__ == "__main__":
     glogger.info(f"  - Output file: {output_file}")
     glogger.info(f"  - Reasoning effort: {args.reasoning_effort}")
     glogger.info(f"  - Agent type: {args.agent_type}")
-    if args.agent_type == "llm-editor":
+    if args.agent_type in ["llm-editor", "llm-file-editor"]:
         glogger.info(f"  - LLM editor model: {args.llm_editor_model}")
+    if args.agent_type in ["llm-editor", "baseline-v2"]:
+        glogger.info(f"  - LLM viewer model: {args.llm_viewer_model}")
 
     with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
         # Track submission time for each future

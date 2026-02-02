@@ -94,22 +94,27 @@ The editor and viewer subagents can use different (typically smaller and cheaper
 
 **Option 1: Environment variables** (recommended for simple setups)
 
-Add to your `.env` file with the `LLM_EDITOR_` prefix:
+Add to your `.env` file with the `LLM_EDITOR_` or `LLM_VIEWER_` prefixes:
 ```bash
 # Main agent uses GPT-4
 API_TYPE="OPENAI"
 OPENAI_API_KEY=<your-api-key>
 MODEL=gpt-4o
 
-# Editor/Viewer use GPT-4o-mini for cost efficiency
+# Editor uses GPT-5-mini
 LLM_EDITOR_API_TYPE="OPENAI"
 LLM_EDITOR_OPENAI_API_KEY=<your-api-key>
-LLM_EDITOR_MODEL=gpt-4o-mini
+LLM_EDITOR_MODEL=gpt-5-mini
+
+# Viewer uses GPT-5-mini
+LLM_VIEWER_API_TYPE="OPENAI"
+LLM_VIEWER_OPENAI_API_KEY=<your-api-key>
+LLM_VIEWER_MODEL=gpt-5-mini
 ```
 
 **Option 2: JSON configuration files**
 
-Create JSON files under `./api_configs/` directory. For example, `api_configs/gpt-5-mini.json`:
+Create JSON files under `./api_configs/` directory. For example, `api_configs/editor/gpt-5-mini.json` or `api_configs/viewer/gpt-5-mini.json`:
 ```json
 {
   "api_type": "OPENAI",

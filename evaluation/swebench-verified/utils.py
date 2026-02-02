@@ -272,7 +272,7 @@ def build_swebench_container(
     if exec_result.exit_code != 0:
         raise Exception(f"Failed to install uv: {exec_result.output.decode()}")
 
-    # 2. Copy sweedit wheel to container
+    # 2. Copy opencat wheel to container
     logger.info("Copying wheel file...")
     copy_to_container_safe(container, whl_file_path, Path(f"/agent/{whl_file_path.name}"))
 
@@ -298,7 +298,8 @@ def load_api_key_and_task_metadata(
     instance_id: str,
     api_config: dict[str, str],
     agent_type: str = "baseline",
-    llm_editor_model: str = "gpt-5-mini",
+    llm_editor_model: str | None = None,
+    llm_viewer_model: str | None = None,
 ) -> dict[str, str]:
     """Load API configuration and task metadata for a specific worker.
 
@@ -306,8 +307,9 @@ def load_api_key_and_task_metadata(
         task_prompt: The task prompt
         instance_id: The instance ID
         api_config: Pre-selected API configuration for this worker
-        agent_type: Type of agent ("baseline" or "llm-editor")
-        llm_editor_model: Model to use for LLM editor (only used if agent_type is "llm-editor")
+        agent_type: Type of agent
+        llm_editor_model: Model to use for LLM editor (required for 'llm-file-editor' and 'llm-editor')
+        llm_viewer_model: Model to use for LLM viewer (required for 'llm-editor' and 'baseline-v2')
 
     Returns:
         Environment variables dictionary with API config and task metadata
@@ -315,10 +317,15 @@ def load_api_key_and_task_metadata(
     # Start with the provided API config
     env_vars = api_config.copy()
 
-    # Load LLM editor config if using llm-editor agent
-    if agent_type in ["llm-file-editor", "llm-editor", "baseline-v2"]:
+    # Load LLM editor config for agents that need it
+    if agent_type in ["llm-file-editor", "llm-editor"]:
         llm_editor_config = load_llm_editor_config_container(model_type=llm_editor_model)
         env_vars.update(llm_editor_config)
+
+    # Load LLM viewer config for agents that need it
+    if agent_type in ["llm-editor", "baseline-v2"]:
+        llm_viewer_config = load_llm_viewer_config_container(model_type=llm_viewer_model)
+        env_vars.update(llm_viewer_config)
 
     # Add task metadata
     env_vars["TASK_PROMPT"] = task_prompt
@@ -498,47 +505,44 @@ def cleanup_container_and_logger(client, container, logger):
     close_logger(logger)
 
 
-def load_llm_editor_config_container(model_type: str = None):
-    """Load the API configuration for the LLM file editor.
+def _load_llm_config_from_env(prefix: str) -> dict[str, str]:
+    """Helper function to load LLM config from environment variables.
 
     Args:
-        model_type: Optional model type override (e.g., "gpt-5", "gpt-5-mini").
-                   If not provided, reads from LLM_EDITOR_API_TYPE env var.
+        prefix: Environment variable prefix (e.g., "LLM_EDITOR_" or "LLM_VIEWER_")
+
+    Returns:
+        Configuration dictionary
     """
-    # If model_type is provided, generate config directly
-    if model_type:
-        return generate_llm_editor_config(model_type)
-
-    # Otherwise, fall back to reading from environment variables
-    api_type = os.getenv("LLM_EDITOR_API_TYPE")
+    api_type = os.getenv(f"{prefix}API_TYPE")
     if not api_type:
-        raise ValueError("LLM_EDITOR_API_TYPE must be provided in environment variables")
+        raise ValueError(f"{prefix}API_TYPE must be provided in environment variables")
 
-    config = {"LLM_EDITOR_API_TYPE": api_type}
+    config = {f"{prefix}API_TYPE": api_type}
 
     if api_type == "OPENAI":
-        if key := os.getenv("LLM_EDITOR_OPENAI_API_KEY"):
-            config["LLM_EDITOR_OPENAI_API_KEY"] = key
-        if url := os.getenv("LLM_EDITOR_OPENAI_BASE_URL"):
-            config["LLM_EDITOR_OPENAI_BASE_URL"] = url
-        if model := os.getenv("LLM_EDITOR_MODEL"):
-            config["LLM_EDITOR_MODEL"] = model
+        if key := os.getenv(f"{prefix}OPENAI_API_KEY"):
+            config[f"{prefix}OPENAI_API_KEY"] = key
+        if url := os.getenv(f"{prefix}OPENAI_BASE_URL"):
+            config[f"{prefix}OPENAI_BASE_URL"] = url
+        if model := os.getenv(f"{prefix}MODEL"):
+            config[f"{prefix}MODEL"] = model
 
     elif api_type == "AZURE_OPENAI":
-        if key := os.getenv("LLM_EDITOR_AZURE_API_KEY"):
-            config["LLM_EDITOR_AZURE_API_KEY"] = key
-        if endpoint := os.getenv("LLM_EDITOR_AZURE_ENDPOINT"):
-            config["LLM_EDITOR_AZURE_ENDPOINT"] = endpoint
-        if deployment := os.getenv("LLM_EDITOR_DEPLOYMENT"):
-            config["LLM_EDITOR_DEPLOYMENT"] = deployment
-        if version := os.getenv("LLM_EDITOR_AZURE_API_VERSION"):
-            config["LLM_EDITOR_AZURE_API_VERSION"] = version
+        if key := os.getenv(f"{prefix}AZURE_API_KEY"):
+            config[f"{prefix}AZURE_API_KEY"] = key
+        if endpoint := os.getenv(f"{prefix}AZURE_ENDPOINT"):
+            config[f"{prefix}AZURE_ENDPOINT"] = endpoint
+        if deployment := os.getenv(f"{prefix}DEPLOYMENT"):
+            config[f"{prefix}DEPLOYMENT"] = deployment
+        if version := os.getenv(f"{prefix}AZURE_API_VERSION"):
+            config[f"{prefix}AZURE_API_VERSION"] = version
 
     elif api_type == "ANTHROPIC":
-        if key := os.getenv("LLM_EDITOR_ANTHROPIC_API_KEY"):
-            config["LLM_EDITOR_ANTHROPIC_API_KEY"] = key
-        if model := os.getenv("LLM_EDITOR_MODEL"):
-            config["LLM_EDITOR_MODEL"] = model
+        if key := os.getenv(f"{prefix}ANTHROPIC_API_KEY"):
+            config[f"{prefix}ANTHROPIC_API_KEY"] = key
+        if model := os.getenv(f"{prefix}MODEL"):
+            config[f"{prefix}MODEL"] = model
 
     else:
         raise ValueError(f"Unknown API type: {api_type}")
@@ -546,9 +550,42 @@ def load_llm_editor_config_container(model_type: str = None):
     return config
 
 
-def generate_llm_editor_config(model_type):
-    editor_config_path = Path(f"api_configs/{model_type}.json")
-    assert editor_config_path.exists(), f"Editor config file not found: {editor_config_path}"
+def _generate_llm_config(model_type: str, config_type: str) -> dict[str, str]:
+    """Generate LLM config from JSON file.
 
-    with open(editor_config_path) as f:
+    Args:
+        model_type: Model type (e.g., "gpt-5-mini")
+        config_type: Config type ("editor" or "viewer")
+
+    Returns:
+        Configuration dictionary
+    """
+    config_path = Path(f"api_configs/{config_type}/{model_type}.json")
+    assert config_path.exists(), f"{config_type.capitalize()} config file not found: {config_path}"
+
+    with open(config_path) as f:
         return json.load(f)
+
+
+def load_llm_editor_config_container(model_type: str = None):
+    """Load the API configuration for the LLM file editor.
+
+    Args:
+        model_type: Optional model type override (e.g., "gpt-5", "gpt-5-mini").
+                   If not provided, reads from LLM_EDITOR_API_TYPE env var.
+    """
+    if model_type:
+        return _generate_llm_config(model_type, "editor")
+    return _load_llm_config_from_env("LLM_EDITOR_")
+
+
+def load_llm_viewer_config_container(model_type: str = None):
+    """Load the API configuration for the LLM file viewer.
+
+    Args:
+        model_type: Optional model type override (e.g., "gpt-5", "gpt-5-mini").
+                   If not provided, reads from LLM_VIEWER_API_TYPE env var.
+    """
+    if model_type:
+        return _generate_llm_config(model_type, "viewer")
+    return _load_llm_config_from_env("LLM_VIEWER_")

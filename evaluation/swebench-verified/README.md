@@ -22,6 +22,7 @@ uv run evaluation/swebench-verified/main.py \
 --reasoning_effort high \
 --agent_type baseline \
 --llm_editor_model gpt-5-mini \
+--llm_viewer_model gpt-5-mini \
 --max_workers <number-of-parallel-workers> \
 --timeout <timeout-in-seconds> \
 ```
