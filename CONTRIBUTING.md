@@ -54,4 +54,4 @@ The scope should specify the area of the codebase affected
 
 
 ## Questions?
-Feel free to open an issue or reach me at ykzhang@cs.wisc.edu if you have any questions or suggestions!
+Feel free to open an issue if you have any questions or suggestions!
