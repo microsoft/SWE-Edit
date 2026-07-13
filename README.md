@@ -4,7 +4,6 @@
 
 **Rethinking Code Editing for Efficient Software Engineering Agents**
 
-[![Paper](https://img.shields.io/badge/Paper-PDF-blue.svg)](assets/paper.pdf)
 ![License: MIT](https://img.shields.io/github/license/microsoft/SWE-Edit)
 [![Python](https://img.shields.io/badge/Python-3.12+-blue)](https://www.python.org/downloads/)
 
@@ -12,7 +11,7 @@
 
 ---
 
-This is the official GitHub repository for the paper [**"SWE-Edit: Rethinking Code Editing for Efficient SWE-Agent"**](assets/paper.pdf).
+This is the official GitHub repository for the paper "SWE-Edit: Rethinking Code Editing for Efficient SWE-Agent".
 
 ## Overview
 
